@@ -3,7 +3,7 @@
 类似CPG，TJPT的赛事app；
 德州源碼，德州撲克源碼，德州賽事源碼，德州錦標賽源碼，大陸德州賽事App源碼，支持線下比賽，線上App可以打出門票，線上MTT比賽，線上錦標賽源碼；
 類似CPG，TJPT的賽事App
-联系Telegram：@xuzongbin001； 邮箱：ttpoker733@gmail.com
+联系Telegram：@alibabama401； 邮箱：ttpoker733@gmail.com
 
 ![0首页 - 副本](https://github.com/user-attachments/assets/13433170-d8ec-413c-860b-45cdab65fba9)
 ![我的收藏-成功](https://github.com/user-attachments/assets/94199b2f-4d1b-464f-88b0-ab08c605572d)
