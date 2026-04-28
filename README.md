@@ -44,7 +44,7 @@
 
 ## 🚀 快速开始
 
-```bash
+
 git clone https://github.com/pokerdeveloper/multiplayer-game-tournament-system.git
 cd multiplayer-game-tournament-system
 详细编译、部署和集成说明请查看 docs/ 目录
