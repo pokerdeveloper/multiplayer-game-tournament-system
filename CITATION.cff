@@ -1,19 +1,31 @@
 cff-version: 1.2.0
-message: "If you use this divination system for research or reference, please cite it as follows."
-title: "Yi-Jing Fortune Telling Source Code"
+message: "If you use this source code as a reference for your own poker game development, please cite it as follows."
+title: "Texas Hold'em Poker Complete Source Code"
 version: 1.0.0
-date-released: 2026-06-02
+date-released: 2026-06-12
 type: software
 authors:
   - name: "pokercode88"
     email: "ttpoker733@gmail.com"
-repository: "https://github.com/pokercode88/Yi-Jing-Fortune-Telling-Source"
+    affiliation: "PokerCode Studio"
+repository: "https://github.com/pokercode88/Texas-Holdem-Multi-Language-Source"
+repository-code: "https://github.com/pokercode88/Texas-Holdem-Multi-Language-Source"
+url: "https://github.com/pokercode88/Texas-Holdem-Multi-Language-Source"
+abstract: "A production-ready Texas Hold'em poker complete source code with 8 game modes (Classic, Short Deck, Omaha, Pineapple, AOF, SNG, MTT, Texas Cowboy) and 5 built-in languages (English, Simplified Chinese, Traditional Chinese, Vietnamese, Korean). Includes club system, tournament system, anti-cheat, and real-time voice chat. Successfully operated online."
 keywords:
-  - 周易排盘
-  - 八字排盘
-  - 紫微斗数
-  - 奇门遁甲
-  - 大六壬
-  - 七政四余
-  - i-ching-divination
-license: "CC BY-NC-ND 4.0"
+  - texas-holdem
+  - poker-source-code
+  - game-server
+  - unity-poker
+  - poker-club
+  - online-poker
+  -德州扑克源码
+  - mã-nguồn-poker
+  - 홀덤-소스
+  - texas-holdem-source-code
+  - poker-platform
+  - club-system
+  - mtt-tournament
+  - unity-poker
+  - cpp-game-server
+license: "Proprietary"

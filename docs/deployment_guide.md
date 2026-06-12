@@ -1,243 +1,306 @@
-# 周易排盘源码部署指南 | 纯静态网页一键部署
-## Yi-Jing Fortune Telling Source Code Deployment Guide
+# 德州扑克源码部署指南
+## Texas Hold'em Source Code Deployment Guide
 
-本指南帮助你快速部署周易排盘系统。由于项目是**纯静态前端**（HTML + JavaScript），无需任何后端服务器，部署方式非常灵活。
+本指南帮助你从零开始部署德州扑克完整源码（客户端 + 服务端 + 数据库）。适用于 Ubuntu 20.04 / CentOS 7+ 环境。
 
 ---
 
 ## 目录 | Table of Contents
 
-1. [本地运行](#本地运行)
-2. [GitHub Pages 部署（推荐）](#github-pages-部署推荐)
-3. [其他静态托管部署](#其他静态托管部署)
-4. [自定义配置](#自定义配置)
-5. [常见问题](#常见问题)
+1. [环境要求](#环境要求)
+2. [数据库部署](#数据库部署)
+3. [服务端部署](#服务端部署)
+4. [客户端编译](#客户端编译)
+5. [配置修改](#配置修改)
+6. [启动与验证](#启动与验证)
+7. [常见问题](#常见问题)
 
 ---
 
-## 本地运行
+## 环境要求
 
-### 方法一：直接打开（最简单）
+### 硬件最低配置（开发/小规模测试）
+
+| 组件 | 要求 |
+| :--- | :--- |
+| CPU | 4核 @ 2.5GHz+ |
+| 内存 | 8 GB |
+| 硬盘 | 50 GB SSD |
+| 带宽 | 10 Mbps |
+
+### 硬件推荐配置（生产环境/1000+ 并发）
+
+| 组件 | 要求 |
+| :--- | :--- |
+| CPU | 8核+ @ 3.0GHz+ |
+| 内存 | 16 GB+ |
+| 硬盘 | 100 GB+ SSD (RAID 10) |
+| 带宽 | 50 Mbps+ |
+
+### 软件要求
+
+| 软件 | 版本 | 用途 |
+| :--- | :--- | :--- |
+| Ubuntu | 20.04 / 22.04 | 操作系统 |
+| MySQL | 8.0+ | 主数据库 |
+| Redis | 6.0+ | 缓存/会话 |
+| Java | OpenJDK 11 | 后台服务 |
+| GCC/G++ | 9.0+ | 编译 C++ 服务端 |
+| CMake | 3.15+ | 构建工具 |
+| Unity | 2020.3 LTS | 客户端编译 |
+
+---
+
+## 数据库部署
+
+### 步骤1：安装 MySQL
 
 
-# 1. 克隆仓库
-git clone https://github.com/pokercode88/Yi-Jing-Fortune-Telling-Source.git
+# Ubuntu 20.04
+sudo apt update
+sudo apt install mysql-server-8.0 -y
 
-# 2. 进入目录
-cd Yi-Jing-Fortune-Telling-Source
+# 启动并设置开机自启
+sudo systemctl start mysql
+sudo systemctl enable mysql
 
-# 3. 直接用浏览器打开 index.html
-# Windows: 双击 index.html
-# Mac: 双击 index.html 或用浏览器打开
-# Linux: 使用浏览器打开文件
-⚠️ 注意：部分浏览器因安全策略可能限制本地文件的某些功能（如跨域请求）。如果遇到问题，请使用方法二（本地服务器）。
+# 安全配置（设置 root 密码）
+sudo mysql_secure_installation
 
-方法二：使用本地 HTTP 服务器（推荐）
-Python 3 版本
+步骤2：导入数据库脚本
+# 登录 MySQL
+mysql -u root -p
 
-# 在项目根目录下执行
-python3 -m http.server 8080
+# 创建数据库（数据库名称可自定义，以实际脚本为准）
+CREATE DATABASE poker_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE poker_log_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-# 然后访问 http://localhost:8080
-Python 2 版本
+# 退出 MySQL
+exit;
 
-# 在项目根目录下执行
-python -m SimpleHTTPServer 8080
+# 导入脚本（脚本路径以你的实际为准）
+mysql -u root -p poker_db < /path/to/sql/poker_db.sql
+mysql -u root -p poker_log_db < /path/to/sql/poker_log_db.sql
 
-# 然后访问 http://localhost:8080
-Node.js 版本（需要安装 live-server）
 
-# 安装 live-server（全局）
-npm install -g live-server
+步骤3：安装 Redis
+sudo apt install redis-server -y
+sudo systemctl start redis
+sudo systemctl enable redis
 
-# 在项目根目录下执行
-live-server --port=8080
-VS Code 用户
-安装 Live Server 插件
+# 测试 Redis
+redis-cli ping
+# 应返回 PONG
 
-右键点击 index.html → Open with Live Server
 
-GitHub Pages 部署（推荐）
-GitHub Pages 是免费的静态网站托管服务，部署后你的排盘系统会有一个公网链接，方便分享和演示。
+服务端部署
+服务端包含三个主要部分：
 
-操作步骤
-进入仓库设置
+RoomServer（C++）：处理牌桌逻辑、游戏结算
 
-打开你的 GitHub 仓库
+LoginServer（C++/Java）：处理登录、路由
 
-点击 Settings 标签页
+AdminServer（Java）：后台管理系统
 
-配置 Pages
+步骤1：安装编译工具
+sudo apt install build-essential cmake libmysqlclient-dev libhiredis-dev -y
+步骤2：编译 C++ 服务端
+# 进入服务端源码目录（以实际路径为准）
+cd /path/to/server/cpp/
 
-在左侧菜单找到 Pages（或直接向下滚动）
+# 创建构建目录
+mkdir build && cd build
 
-在 Branch 下拉菜单中，选择 main（或 master）
+# CMake 配置
+cmake .. -DCMAKE_BUILD_TYPE=Release
 
-文件夹选择 / (root)
+# 编译
+make -j$(nproc)
 
-点击 Save
+# 编译完成后，可执行文件位于 build/bin/ 目录
 
-等待部署
+步骤3：配置服务端参数
+[Database]
+mysql_host=127.0.0.1
+mysql_port=3306
+mysql_user=poker_user
+mysql_password=your_password
+mysql_db=poker_db
 
-部署通常需要 1-3 分钟
+[Redis]
+redis_host=127.0.0.1
+redis_port=6379
+redis_password=
 
-部署成功后，页面会显示绿色提示框，包含你的网站链接
+[Server]
+room_port=10001
+login_port=10002
+max_players=1000
+log_level=INFO
 
-链接格式为：https://你的用户名.github.io/仓库名/
 
-访问演示
 
-例如：https://pokercode88.github.io/Yi-Jing-Fortune-Telling-Source/
+步骤4：编译/运行 Java 后台服务
 
-开启强制 HTTPS（推荐）
-在 GitHub Pages 设置中，勾选 Enforce HTTPS，让网站通过加密连接访问，提升安全性和 SEO 排名。
+# 安装 Maven
+sudo apt install maven -y
 
-自定义域名（可选）
-如果你有自己的域名（如 https://yijing.example.com）：
+# 进入 Java 服务目录
+cd /path/to/server/java/admin/
 
-在 Pages 设置中，在 Custom domain 输入你的域名
+# 编译打包
+mvn clean package -DskipTests
 
-在你的域名 DNS 设置中添加一条 CNAME 记录，指向 你的用户名.github.io
+# 运行（生成的 jar 包在 target/ 目录）
+java -jar target/admin-server-1.0.jar --server.port=8080
 
-等待 DNS 生效（通常 10-30 分钟）
 
-其他静态托管部署
-Netlify（推荐）
-Netlify 提供更简单的部署体验和更好的性能。
 
-方法一：拖拽部署
+客户端编译
+客户端使用 Unity 引擎，支持 iOS 和 Android。
 
-访问 netlify.com 注册账号
+步骤1：安装 Unity
+下载并安装 Unity Hub
 
-将项目文件夹直接拖拽到 Netlify 部署区域
+通过 Unity Hub 安装 Unity 2020.3 LTS 版本
 
-完成！你会得到一个 https://xxxx.netlify.app 的链接
+添加模块：iOS Build Support / Android Build Support
 
-方法二：Git 连接
+步骤2：打开项目
+打开 Unity Hub → Add → 选择客户端源码目录（如 client/unity/）
 
-点击 New site from Git
+等待项目加载完成
 
-连接你的 GitHub 仓库
+步骤3：修改服务器地址
+在 Unity 编辑器中，找到 Assets/Scripts/Network/NetworkConfig.cs：
+public class NetworkConfig
+{
+    // 修改为你的服务端公网 IP 或域名
+    public static string LOGIN_SERVER_IP = "your-server-ip";
+    public static int LOGIN_SERVER_PORT = 10002;
+    
+    public static string ROOM_SERVER_IP = "your-server-ip";
+    public static int ROOM_SERVER_PORT = 10001;
+}
 
-保持默认配置（Build command 留空，Publish directory 填 /）
 
-点击 Deploy site
+步骤4：构建客户端
+Android（APK/AAB）
+File → Build Settings → Android → Switch Platform
 
-Vercel
-访问 vercel.com 注册账号
+Player Settings 中配置包名、签名、版本号
 
-点击 Add New → Project
+Build → 生成 APK 或 AAB
 
-导入你的 GitHub 仓库
+iOS（IPA）
+File → Build Settings → iOS → Switch Platform
 
-保持默认配置（Framework Preset 选择 Other）
+Player Settings 中配置 Bundle Identifier、签名
 
-点击 Deploy
+Build → 生成 Xcode 项目
 
-Cloudflare Pages
-访问 pages.cloudflare.com
+使用 Xcode 编译并导出 IPA
 
-点击 Create a project → Connect to Git
+配置修改（重要参数）
+修改游戏基础规则
+文件：server/cpp/config/game_rules.json
+{
+  "blind_levels": [
+    { "small_blind": 10, "big_blind": 20, "duration_seconds": 600 },
+    { "small_blind": 20, "big_blind": 40, "duration_seconds": 600 },
+    { "small_blind": 50, "big_blind": 100, "duration_seconds": 600 }
+  ],
+  "rake_percent": 5,
+  "rake_cap": 100,
+  "starting_chips": 1500,
+  "min_players_for_start": 2,
+  "max_players_per_table": 9
+}
 
-连接你的 GitHub 仓库
 
-保持默认配置（Build command 留空）
+修改多语言文案
+文件：client/unity/Assets/Resources/Localization/
 
-点击 Save and Deploy
+文件	语言
+zh_CN.json	简体中文
+zh_TW.json	繁体中文
+en_US.json	英文
+vi_VN.json	越南语
+ko_KR.json	韩语
 
-阿里云 OSS / 腾讯云 COS
-如果你的项目面向中国大陆用户，可以使用云存储托管：
 
-阿里云 OSS 步骤：
+启动与验证
+启动顺序
+# 1. 启动 Redis
+sudo systemctl start redis
 
-创建 Bucket（选择公共读权限）
+# 2. 启动 MySQL（如未启动）
+sudo systemctl start mysql
 
-开启静态网站托管功能
+# 3. 启动 LoginServer
+cd /path/to/server/cpp/build/bin/
+./login_server --config=server.conf
 
-上传所有文件到 Bucket 根目录
+# 4. 启动 RoomServer
+./room_server --config=server.conf
 
-绑定自定义域名（可选）
+# 5. 启动 AdminServer（Java）
+cd /path/to/server/java/admin/
+java -jar target/admin-server-1.0.jar
 
-自定义配置
-修改网站标题
-编辑 index.html，找到 <title> 标签：
 
-html
-<title>周易排盘系统 | 八字紫微奇门六壬</title>
-修改默认语言
-系统内置简体/繁体切换。如需修改默认语言，编辑 index.js 中的配置：
+验证服务状态
+# 检查端口监听
+netstat -tlnp | grep -E "10001|10002|8080"
 
-javascript
-// 默认语言：'zh-CN' 简体中文，'zh-TW' 繁体中文
-var defaultLanguage = 'zh-CN';
-添加 Google Analytics（可选）
-在 index.html 的 </head> 标签前添加：
+# 预期输出：
+# tcp 0 0 0.0.0.0:10001  LISTEN  [room_server]
+# tcp 0 0 0.0.0.0:10002  LISTEN  [login_server]
+# tcp 0 0 0.0.0.0:8080   LISTEN  [java]
 
-html
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=你的GA-ID"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '你的GA-ID');
-</script>
-修改样式
-CSS 样式内嵌在 index.html 的 <style> 标签中。如需大幅调整，建议创建独立的 style.css 文件。
+
+客户端连接测试
+将编译好的客户端安装到手机或模拟器
+
+输入测试账号登录（后台可创建测试账号）
+
+创建或加入牌桌，验证完整流程
 
 常见问题
-Q1: 本地打开 index.html 时，某些功能不工作？
-原因：浏览器的跨域安全策略限制了本地文件的某些 JavaScript 功能。
+Q1: 编译 C++ 时报错 mysql.h: No such file
+解决方案：
+sudo apt install libmysqlclient-dev
+Q2: Redis 连接失败
+检查：
+redis-cli ping
+# 应返回 PONG
 
-解决方案：使用本地 HTTP 服务器运行（参考上文“本地运行 - 方法二”）。
+# 检查 bind 配置
+sudo nano /etc/redis/redis.conf
+# 确保 bind 127.0.0.1 或你的服务器 IP
 
-Q2: GitHub Pages 部署后，页面显示空白？
+Q3: 客户端连接不上服务端
 排查步骤：
 
-检查仓库根目录是否有 index.html 文件
+检查服务端防火墙：sudo ufw allow 10001、sudo ufw allow 10002
 
-确认 Pages 设置中 Branch 选择正确
+检查客户端 NetworkConfig.cs 中的 IP 是否正确
 
-等待 1-3 分钟后强制刷新浏览器（Ctrl + F5）
+使用 telnet your-server-ip 10001 测试端口连通性
 
-检查浏览器控制台是否有报错（F12 → Console）
+Q4: 如何修改数据库密码？
+ALTER USER 'poker_user'@'localhost' IDENTIFIED BY 'new_password';
+FLUSH PRIVILEGES;
+然后同步修改 server.conf 中的 mysql_password。
 
-Q3: 排盘结果不准确？
-可能原因：
+Q5: 服务端崩溃如何排查？
+查看日志文件：
+# 日志默认位置
+cd /path/to/server/cpp/build/bin/logs/
+tail -100 room_server.log
 
-时区设置不正确（中国使用 UTC+8）
-
-输入日期格式错误
-
-节气交界点处理（如立春分年）
-
-解决方案：请参考 docs/algorithm_api.md 了解算法细节，或联系技术支持。
-
-Q4: 如何更新到最新版本？
-
-# 拉取最新代码
-git pull origin main
-
-# 如果使用 GitHub Pages，推送后会自动重新部署
-git push origin main
-Q5: 可以部署到自己的服务器吗？
-可以。将整个项目文件夹上传到服务器的 Web 目录（如 htdocs、wwwroot）即可。支持 Nginx、Apache、IIS 等任何 Web 服务器。
-
-Nginx 配置示例：
-
-nginx
-server {
-    listen 80;
-    server_name yijing.example.com;
-    root /var/www/Yi-Jing-Fortune-Telling-Source;
-    index index.html;
-}
-Q6: 如何导出排盘结果为图片或 Excel？
-系统内置了导出功能：
-
-图片导出：点击界面上的截图/导出图片按钮
-
-Excel 导出：使用 xlsx.full.min.js 库，点击导出 Excel 按钮
+Q6: 支持 HTTPS/WSS 吗？
+支持。需要在 Nginx 配置 SSL 反向代理，并修改客户端的 WebSocket 连接地址为 wss://your-domain.com。
 
 联系支持
 如遇到部署问题，可通过以下方式联系我们：
@@ -245,6 +308,6 @@ Excel 导出：使用 xlsx.full.min.js 库，点击导出 Excel 按钮
 联系方式	账号
 Telegram	@alibabama401
 Email	ttpoker733@gmail.com
-请在联系时附上：部署方式（GitHub Pages / 本地 / 其他）、浏览器版本、错误截图。
+请在联系时附上错误日志和服务器环境信息。
 
 *最后更新：2026-06-12 | 版本：v1.0*
